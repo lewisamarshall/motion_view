@@ -34,7 +34,7 @@ def background(path, method):
 @click.option('--indices', '-i', type=int, multiple=True, default=(30, 40, 50))
 @click.option('--background', '-b', type=click.Path(exists=True, file_okay=True, dir_okay=False), default='median.png')
 @click.option('--method', '-m', type=str, multiple=False, default='threshold')
-@click.option('--comparison', '-c', type=str, multiple=False, default='normalized_distance')
+@click.option('--comparison', '-c', type=str, multiple=False, default='distance')
 @click.option('--debug', '-d', is_flag=True, default=True)
 def motion_image(path, indices, background, method, comparison, debug):
     images = pims.Video(path)
