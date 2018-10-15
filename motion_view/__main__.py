@@ -3,24 +3,29 @@ from skimage import io
 import pims
 import click
 import numpy as np
+import warnings
+
+from . import background_methods
 
 @click.group()
-def cli():
-    pass
+@click.option('--warn', '-w', is_flag=True)
+def cli(warn):
+    if not warn:
+        warnings.simplefilter('ignore', Warning)
 
 
 @cli.command()
 @click.argument('path', click.Path(exists=True))
-def background(path):
+@click.option('--method', '-m', type=str, multiple=True, default=('median',))
+def background(path, method):
     images = pims.Video(str(path))
-    images = np.stack(images)
-    median = np.median(images, axis=0)
-    median = median.astype(int)
-    minima = np.min(images, axis=0)
-    maxima = np.max(images, axis=0)
-    io.imsave('minima.png', minima)
-    io.imsave('maxima.png', maxima)
-    io.imsave('median.png', median)
+    for m in method:
+        try:
+            handle = getattr(background_methods, m)
+            result = handle(images)
+            io.imsave(f'{m}.png', result)
+        except:
+            raise RuntimeError(f'{m} is not a valid background method.')
 
 @cli.command()
 @click.argument('path', click.Path(exists=True))
