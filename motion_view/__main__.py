@@ -6,6 +6,8 @@ import numpy as np
 import warnings
 
 from . import background_methods
+from . import object_detection
+from . import comparison_methods
 
 @click.group()
 @click.option('--warn', '-w', is_flag=True)
@@ -22,23 +24,31 @@ def background(path, method):
     for m in method:
         try:
             handle = getattr(background_methods, m)
-            result = handle(images)
-            io.imsave(f'{m}.png', result)
         except:
             raise RuntimeError(f'{m} is not a valid background method.')
+        result = handle(images)
+        io.imsave(f'{m}.png', result)
 
 @cli.command()
 @click.argument('path', click.Path(exists=True))
 @click.option('--indices', '-i', type=int, multiple=True, default=(30, 40, 50))
-def motion_image(path, indices):
-    images = pims.Video(str(path))
-    bg = io.imread('median.png')
-    white = np.ones(bg.shape)*255
-    new_frame = bg * .8
+@click.option('--background', '-b', type=click.Path(exists=True, file_okay=True, dir_okay=False), default='median.png')
+@click.option('--method', '-m', type=str, multiple=False, default='threshold')
+@click.option('--comparison', '-c', type=str, multiple=False, default='normalized_distance')
+@click.option('--debug', '-d', is_flag=True, default=True)
+def motion_image(path, indices, background, method, comparison, debug):
+    images = pims.Video(path)
+    composite = reference = io.imread(background)
+    detector = getattr(object_detection, method)
+    comparitor = getattr(comparison_methods, comparison)
+
     for idx in indices:
         frame = images[idx]
-        new_frame = np.where((np.max(np.abs(frame-bg), axis=2)>20)[:, :, np.newaxis] , frame, new_frame )
-    io.imsave('composite.png', new_frame.astype('uint8'))
+        if debug:
+            io.imsave(f'comparison_{idx}.png', comparitor(frame, reference).astype('uint8'))
+            io.imsave(f'detection_{idx}.png', detector(comparitor(frame, reference)).astype('bool')*255)
+        composite = np.where(detector(comparitor(frame, reference))[:, :, np.newaxis] , frame, composite)
+    io.imsave('composite.png', composite.astype('uint8'))
 
 if __name__ == '__main__':
     cli()

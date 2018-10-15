@@ -10,3 +10,8 @@ def minimum(images):
 
 def maximum(images):
     return np.max(images, axis=0)
+
+def std(images):
+    images = np.stack(images)
+    result = np.std(images, axis=0)
+    return result.astype(int)
